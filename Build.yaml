@@ -1,0 +1,24 @@
+name: Build ATS Mini V1
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO
+        run: pip install platformio esptool
+      - name: Build firmware
+        run: pio run -e esp32-s3-ots
+      - name: Merge bin for espflash
+        run: |
+          BOOT_APP=$(find ~/.platformio -name boot_app0.bin | head -1)
+          esptool.py --chip esp32-s3 merge_bin -o ATSMiniV1-merged.bin --flash_mode qio --flash_size 16MB 0x0 .pio/build/esp32-s3-ots/bootloader.bin 0x8000 .pio/build/esp32-s3-ots/partitions.bin 0xe000 "$BOOT_APP" 0x10000 .pio/build/esp32-s3-ots/firmware.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ATSMiniV1-merged
+          path: ATSMiniV1-merged.bin
